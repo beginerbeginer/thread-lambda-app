@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Resources:
+  MessageTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Messages
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  ReadMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ReadMessageFunction
+      Handler: lambda/read_message.lambda_handler
+      Runtime: python3.12
+      CodeUri: src
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MessageTable
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBReadPolicy:
+            TableName: !Ref MessageTable
+      Events:
+        ReadApi:
+          Type: Api
+          Properties:
+            Path: /read
+            Method: get
+
+  GetFormFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: GetFormFunction
+      Handler: lambda/get_form.lambda_handler
+      Runtime: python3.12
+      CodeUri: src
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Events:
+        GetFormApi:
+          Type: Api
+          Properties:
+            Path: /write
+            Method: get
+
+  PostMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: PostMessageFunction
+      Handler: lambda/post_message.lambda_handler
+      Runtime: python3.12
+      CodeUri: src
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MessageTable
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MessageTable
+      Events:
+        PostMessageApi:
+          Type: Api
+          Properties:
+            Path: /write
+            Method: post
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
